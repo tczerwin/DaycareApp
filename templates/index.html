@@ -76,7 +76,7 @@
 				<td>{{child.name}}</td>
 				<td>{{child.parent_name if child.parent_name else '-'}}</td>
 				<td>{{child.parent_phone if child.parent_phone else '-'}}</td>
-				<td>{{child.arrived.strftime('%m/%d/%Y %I:%M %p')}}</td>
+				<td>{{child.arrived_local}}</td>
 				<td>
 					{% set elapsed = now - child.arrived %}
 					{% set hours = elapsed.seconds // 3600 %}
