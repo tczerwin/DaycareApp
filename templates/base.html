@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="{{url_for('static', filename='css/main.css')}}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <button id="darkModeBtn" style="position: fixed; top: 20px; right: 20px; padding: 10px 15px; background-color: #333; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; z-index: 9999;">🌙</button>
+
+    <style id="darkModeStyle"></style>
+
+    {% block body %}{% endblock %}
+
+    <script>
+        var darkMode = localStorage.getItem('darkMode') === 'true';
+        var darkModeBtn = document.getElementById('darkModeBtn');
+        var darkModeStyle = document.getElementById('darkModeStyle');
+
+        var darkModeCSS = `
+            body { background-color: #1a1a1a; color: #e0e0e0; }
+            .content { background-color: #2a2a2a !important; color: #e0e0e0; }
+            table { background-color: #2a2a2a; color: #e0e0e0; }
+            th { background-color: #1a1a1a !important; color: #e0e0e0; }
+            td { background-color: #2a2a2a; color: #e0e0e0; }
+            input, textarea { background-color: #333; color: #e0e0e0; border-color: #555 !important; }
+        `;
+
+        function toggleDarkMode() {
+            darkMode = !darkMode;
+            localStorage.setItem('darkMode', darkMode);
+            applyDarkMode();
+        }
+
+        function applyDarkMode() {
+            if (darkMode) {
+                darkModeStyle.textContent = darkModeCSS;
+                darkModeBtn.textContent = '☀️';
+            } else {
+                darkModeStyle.textContent = '';
+                darkModeBtn.textContent = '🌙';
+            }
+        }
+
+        darkModeBtn.addEventListener('click', toggleDarkMode);
+        applyDarkMode();
+    </script>
+</body>
+</html>
