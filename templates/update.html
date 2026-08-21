@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+
+{% block head %}
+<title>Daycare Pickup</title>
+{% endblock %}
+
+
+{% block body %}
+<div class="content">
+	<h1 style="text-align: center">Update Child</h1>
+
+	<form action="/update/{{child.id}}" method='POST' enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 20px; max-width: 500px; margin: 0 auto;">
+		<div>
+			<label for="name" style="display: block; margin-bottom: 8px; font-weight: bold;">Child Name:</label>
+			<input type="text" name="name" id="name" value="{{child.name}}" required style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 5px; font-size: 16px;">
+		</div>
+
+		<div>
+			<label for="parent_name" style="display: block; margin-bottom: 8px; font-weight: bold;">Parent Name:</label>
+			<input type="text" name="parent_name" id="parent_name" value="{{child.parent_name if child.parent_name else ''}}" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 5px; font-size: 16px;">
+		</div>
+
+		<div>
+			<label for="parent_phone" style="display: block; margin-bottom: 8px; font-weight: bold;">Parent Phone:</label>
+			<input type="tel" name="parent_phone" id="parent_phone" value="{{child.parent_phone if child.parent_phone else ''}}" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 5px; font-size: 16px;">
+		</div>
+
+		<div>
+			<label for="picture" style="display: block; margin-bottom: 8px; font-weight: bold;">Picture:</label>
+			{% if child.image %}
+				<p style="margin-bottom: 10px; color: #666;">Current: {{child.image}}</p>
+			{% endif %}
+			<input type="file" name="picture" id="picture" accept="image/*" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 5px; font-size: 16px;">
+			<small style="color: #666; display: block; margin-top: 5px;">Leave blank to keep current picture</small>
+		</div>
+
+		<div>
+			<label for="notes" style="display: block; margin-bottom: 8px; font-weight: bold;">Notes:</label>
+			<textarea name="notes" id="notes" placeholder="Allergies, medications, special instructions..." style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 5px; font-size: 16px; resize: vertical; min-height: 100px;">{{child.notes if child.notes else ''}}</textarea>
+			<small style="color: #666; display: block; margin-top: 5px;">Add any important information</small>
+		</div>
+
+		<div style="display: flex; gap: 10px;">
+			<input type="submit" value="Update Child" style="flex: 1; padding: 12px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer;">
+			<a href="/" style="flex: 1; padding: 12px; background-color: #f0f0f0; color: #333; text-decoration: none; border-radius: 5px; text-align: center; font-weight: bold; border: 2px solid #ddd;">Cancel</a>
+		</div>
+	</form>
+
+</div>
+
+{% endblock %}

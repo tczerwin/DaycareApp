@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Parent Contact List</title>
+{% endblock %}
+
+{% block body %}
+<div class="content">
+	<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+		<h1 style="margin: 0;">Parent Contact Information</h1>
+		<a href="/" style="padding: 10px 20px; background-color: #666; color: white; text-decoration: none; border-radius: 5px;">← Back</a>
+	</div>
+
+	<table style="width: 100%; border-collapse: collapse;">
+		<tr>
+			<th style="background-color: #2196F3; color: white; padding: 15px; text-align: left; font-weight: bold;">Child Name</th>
+			<th style="background-color: #2196F3; color: white; padding: 15px; text-align: left; font-weight: bold;">Parent Name</th>
+			<th style="background-color: #2196F3; color: white; padding: 15px; text-align: left; font-weight: bold;">Phone Number</th>
+		</tr>
+		{% for child_name, parent_name, parent_phone in parents %}
+			<tr style="border-bottom: 1px solid #ddd;">
+				<td style="padding: 12px 15px; font-weight: bold;">{{ child_name }}</td>
+				<td style="padding: 12px 15px;">{{ parent_name if parent_name else '-' }}</td>
+				<td style="padding: 12px 15px;">
+					{% if parent_phone %}
+						<a href="tel:{{ parent_phone }}" style="color: #2196F3; text-decoration: none;">{{ parent_phone }}</a>
+					{% else %}
+						-
+					{% endif %}
+				</td>
+			</tr>
+		{% endfor %}
+	</table>
+
+	{% if not parents %}
+		<p style="text-align: center; color: #999; margin-top: 30px;">No parent information available</p>
+	{% endif %}
+
+	<div style="margin-top: 30px; text-align: center;">
+		<a href="/" style="padding: 12px 25px; background-color: #666; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">Back to Main</a>
+	</div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,337 @@
+{% extends 'base.html' %}
+
+
+{% block head %}
+<title>Daycare Pickup</title>
+{% endblock %}
+
+
+{% block body %}
+<div class="content">
+	<h1 style="text-align: center">Daycare Pickup</h1>
+
+	{% if error %}
+		<div style="background-color: #f44336; color: white; padding: 15px; border-radius: 5px; margin-bottom: 20px; text-align: center; font-weight: bold;">
+			⚠️ {{ error }}
+		</div>
+	{% endif %}
+
+	<!-- Daily Statistics -->
+	<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 25px;">
+		<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+			<p style="margin: 0 0 8px 0; font-size: 12px; opacity: 0.9;">Total Today</p>
+			<h3 style="margin: 0; font-size: 32px;">{{ stats.total_today }}</h3>
+		</div>
+		<div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+			<p style="margin: 0 0 8px 0; font-size: 12px; opacity: 0.9;">Still Here</p>
+			<h3 style="margin: 0; font-size: 32px;">{{ stats.currently_here }}</h3>
+		</div>
+		<div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+			<p style="margin: 0 0 8px 0; font-size: 12px; opacity: 0.9;">Checked Out</p>
+			<h3 style="margin: 0; font-size: 32px;">{{ stats.checked_out }}</h3>
+		</div>
+		<div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+			<p style="margin: 0 0 8px 0; font-size: 12px; opacity: 0.9;">Avg Time</p>
+			<h3 style="margin: 0; font-size: 28px;">
+				{% if stats.avg_hours > 0 %}
+					{{ stats.avg_hours }}h {{ stats.avg_minutes }}m
+				{% else %}
+					{{ stats.avg_minutes }}m
+				{% endif %}
+			</h3>
+		</div>
+	</div>
+
+	<div style="margin-bottom: 20px; position: relative;">
+		<input type="text" id="searchBox" placeholder="🔍 Search children or parents..." style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 5px; font-size: 16px;">
+		<div id="suggestions" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #ddd; border-top: none; border-radius: 0 0 5px 5px; max-height: 200px; overflow-y: auto; z-index: 1000;"></div>
+	</div>
+	{% if children|length < 1 %}
+		<h4>No children checked in</h4>
+	{% else %}
+	<table>
+		<tr>
+			<th>Photo</th>
+			<th>Child</th>
+			<th>Parent Name</th>
+			<th>Parent Phone</th>
+			<th>Checked In</th>
+			<th>Time Here</th>
+			<th>Actions</th>
+		</tr>
+		{% for child in children %}
+			<tr>
+				<td>
+					<div style="position: relative; width: 60px; height: 60px; display: inline-block;">
+						{% if child.image %}
+							<img src="{{ url_for('static', filename='img/' + child.image) }}" width="60" height="60" style="border-radius: 5px; object-fit: cover;">
+						{% else %}
+							<img src="{{ url_for('static', filename='img/baby.png') }}" width="60" height="60" style="border-radius: 5px; object-fit: cover;">
+						{% endif %}
+						{% if child.notes and 'allergic' in child.notes.lower() %}
+							<span style="position: absolute; top: 35px; right: 35px; background-color: #f44336; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: help;" title="{{ child.notes }}">!</span>
+						{% endif %}
+					</div>
+				</td>
+				<td>{{child.name}}</td>
+				<td>{{child.parent_name if child.parent_name else '-'}}</td>
+				<td>{{child.parent_phone if child.parent_phone else '-'}}</td>
+				<td>{{child.arrived.strftime('%m/%d/%Y %I:%M %p')}}</td>
+				<td>
+					{% set elapsed = now - child.arrived %}
+					{% set hours = elapsed.seconds // 3600 %}
+					{% set minutes = (elapsed.seconds % 3600) // 60 %}
+					{% if hours > 0 %}
+						{{ hours }}h {{ minutes }}m
+					{% else %}
+						{{ minutes }}m
+					{% endif %}
+				</td>
+				<td>
+					<a href="/delete/{{child.id}}">Check Out</a>
+					<br>
+					<a href="/update/{{child.id}}">Update</a>
+				</td>
+				<td style="display: none;">{{child.notes if child.notes else ''}}</td>
+			</tr>
+		{% endfor %}
+	</table>
+	{% endif %}
+
+
+	<form action="/" method='POST'>
+		<input type="text" name="name" id="checkinName" placeholder="Child name" autofocus>
+		<input type="submit" value="Check In Child">
+		<div id="childInfo" style="margin-top: 10px; padding: 10px; background-color: #e3f2fd; border-radius: 5px; display: none;">
+			<p id="infoText" style="margin: 0;"></p>
+		</div>
+	</form>
+
+	<script>
+		var checkinInput = document.getElementById('checkinName');
+		var childInfoDiv = document.getElementById('childInfo');
+		var infoText = document.getElementById('infoText');
+
+		checkinInput.addEventListener('input', function() {
+			var name = this.value.trim();
+			if (name.length > 0) {
+				fetch('/api/child-info/' + encodeURIComponent(name))
+					.then(r => r.json())
+					.then(data => {
+						if (data.found) {
+							infoText.textContent = `Found! Parent: ${data.parent_name}, Phone: ${data.parent_phone}`;
+							childInfoDiv.style.display = 'block';
+						} else {
+							childInfoDiv.style.display = 'none';
+						}
+					});
+			} else {
+				childInfoDiv.style.display = 'none';
+			}
+		});
+	</script>
+
+	<div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
+		<a href="/export-pdf" style="padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; display: inline-block;">
+			📥 Export Day to PDF
+		</a>
+		<a href="/parents" style="padding: 10px 20px; background-color: #FF9800; color: white; text-decoration: none; border-radius: 5px; display: inline-block;">
+			📞 Parent Contacts
+		</a>
+		<a href="/add-child" style="padding: 12px 25px; background-color: #2196F3; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; transition: all 0.3s;">
+			➕ New Child
+		</a>
+	</div>
+</div>
+
+<!-- Child Details Modal -->
+<div id="childModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center;">
+	<div style="background: white; border-radius: 10px; padding: 30px; max-width: 500px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+		<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+			<h2 id="modalChildName" style="margin: 0; color: #333;"></h2>
+			<button onclick="closeChildModal()" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #999;">×</button>
+		</div>
+
+		<div style="text-align: center; margin-bottom: 20px;">
+			<img id="modalChildPhoto" width="120" height="120" style="border-radius: 10px; object-fit: cover;">
+		</div>
+
+		<div style="background: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+			<p style="margin: 10px 0;"><strong>Parent Name:</strong> <span id="modalParentName"></span></p>
+			<p style="margin: 10px 0;"><strong>Parent Phone:</strong> <span id="modalParentPhone"></span></p>
+			<p style="margin: 10px 0;"><strong>Checked In:</strong> <span id="modalCheckedIn"></span></p>
+			<p style="margin: 10px 0;"><strong>Time Here:</strong> <span id="modalTimeHere"></span></p>
+			<div id="notesSection" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+				<p style="margin: 10px 0;"><strong>Notes:</strong></p>
+				<p id="modalNotes" style="margin: 10px 0; white-space: pre-wrap; font-size: 14px;"></p>
+			</div>
+		</div>
+
+		<div style="display: flex; gap: 10px;">
+			<a id="modalCheckOutBtn" href="#" style="flex: 1; padding: 12px; background-color: #f44336; color: white; text-decoration: none; border-radius: 5px; text-align: center; font-weight: bold;">Check Out</a>
+			<a id="modalUpdateBtn" href="#" style="flex: 1; padding: 12px; background-color: #2196F3; color: white; text-decoration: none; border-radius: 5px; text-align: center; font-weight: bold;">Update</a>
+		</div>
+	</div>
+</div>
+
+<script>
+	var searchBox = document.getElementById('searchBox');
+	var suggestionsDiv = document.getElementById('suggestions');
+	var tableRows = document.querySelectorAll('table tr:not(:first-child)');
+
+	// Get all child names and parent names
+	var allSearchTerms = [];
+	tableRows.forEach(function(row) {
+		var cells = row.querySelectorAll('td');
+		var childName = cells[1].textContent.trim();
+		var parentName = cells[2].textContent.trim();
+
+		if (childName && !allSearchTerms.includes(childName)) {
+			allSearchTerms.push(childName);
+		}
+		if (parentName && parentName !== '-' && !allSearchTerms.includes(parentName)) {
+			allSearchTerms.push(parentName);
+		}
+	});
+
+	// Handle Enter key
+	searchBox.addEventListener('keydown', function(e) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			var firstSuggestion = suggestionsDiv.querySelector('div');
+			if (firstSuggestion) {
+				firstSuggestion.click();
+			}
+		}
+	});
+
+	// Search and filter functionality
+	searchBox.addEventListener('keyup', function() {
+		var searchTerm = this.value.toLowerCase();
+		var matches = [];
+
+		// Get matching suggestions
+		if (searchTerm.length > 0) {
+			matches = allSearchTerms.filter(function(term) {
+				return term.toLowerCase().includes(searchTerm);
+			});
+		}
+
+		// Show/hide suggestions
+		if (matches.length > 0 && searchTerm.length > 0) {
+			suggestionsDiv.style.display = 'block';
+			suggestionsDiv.innerHTML = '';
+
+			matches.forEach(function(match) {
+				var suggestion = document.createElement('div');
+				suggestion.textContent = match;
+				suggestion.style.cssText = 'padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #eee;';
+				suggestion.onmouseover = function() {
+					this.style.backgroundColor = '#f0f0f0';
+				};
+				suggestion.onmouseout = function() {
+					this.style.backgroundColor = 'white';
+				};
+				suggestion.onclick = function() {
+					searchBox.value = match;
+					suggestionsDiv.style.display = 'none';
+					filterTable(match.toLowerCase());
+					showChildDetails(match);
+				};
+				suggestionsDiv.appendChild(suggestion);
+			});
+		} else {
+			suggestionsDiv.style.display = 'none';
+		}
+
+		// Filter table
+		filterTable(searchTerm);
+	});
+
+	// Hide suggestions when clicking outside
+	document.addEventListener('click', function(e) {
+		if (e.target !== searchBox && e.target !== suggestionsDiv) {
+			suggestionsDiv.style.display = 'none';
+		}
+	});
+
+	// Make table rows clickable to go to child details page
+	tableRows.forEach(function(row) {
+		row.style.cursor = 'pointer';
+		row.addEventListener('click', function(e) {
+			// Don't navigate if clicking on links or buttons
+			if (e.target.tagName === 'A') {
+				return;
+			}
+			var updateLink = row.querySelector('a[href*="/update/"]');
+			if (updateLink) {
+				var childId = updateLink.href.split('/').pop();
+				window.location.href = '/child/' + childId;
+			}
+		});
+		row.addEventListener('mouseover', function() {
+			row.style.backgroundColor = '#f0f0f0';
+		});
+		row.addEventListener('mouseout', function() {
+			row.style.backgroundColor = '';
+		});
+	});
+
+	function filterTable(searchTerm) {
+		tableRows.forEach(function(row) {
+			var cells = row.querySelectorAll('td');
+			var childName = cells[1].textContent.toLowerCase();
+			var parentName = cells[2].textContent.toLowerCase();
+
+			if (childName.includes(searchTerm) || parentName.includes(searchTerm)) {
+				row.style.display = '';
+			} else {
+				row.style.display = 'none';
+			}
+		});
+	}
+
+	function showChildDetails(childName) {
+		var row = Array.from(tableRows).find(function(r) {
+			var nameCell = r.querySelectorAll('td')[1];
+			return nameCell && nameCell.textContent.trim() === childName;
+		});
+
+		if (row) {
+			var cells = row.querySelectorAll('td');
+			var photo = row.querySelector('img').src;
+			var parentName = cells[2].textContent.trim();
+			var parentPhone = cells[3].textContent.trim();
+			var checkedIn = cells[4].textContent.trim();
+			var timeHere = cells[5].textContent.trim();
+			var notes = cells[7].textContent.trim();
+			var checkOutLink = row.querySelector('a[href*="/delete/"]').href;
+			var updateLink = row.querySelector('a[href*="/update/"]').href;
+
+			document.getElementById('modalChildName').textContent = childName;
+			document.getElementById('modalChildPhoto').src = photo;
+			document.getElementById('modalParentName').textContent = parentName;
+			document.getElementById('modalParentPhone').textContent = parentPhone;
+			document.getElementById('modalCheckedIn').textContent = checkedIn;
+			document.getElementById('modalTimeHere').textContent = timeHere;
+			document.getElementById('modalNotes').textContent = notes || 'No notes';
+			document.getElementById('modalCheckOutBtn').href = checkOutLink;
+			document.getElementById('modalUpdateBtn').href = updateLink;
+
+			document.getElementById('childModal').style.display = 'flex';
+		}
+	}
+
+	function closeChildModal() {
+		document.getElementById('childModal').style.display = 'none';
+	}
+
+	// Close modal when clicking outside
+	document.getElementById('childModal').addEventListener('click', function(e) {
+		if (e.target === this) {
+			closeChildModal();
+		}
+	});
+</script>
+
+{% endblock %}

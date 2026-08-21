@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>{{ child.name }} - Details</title>
+{% endblock %}
+
+{% block body %}
+<div class="content">
+	<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+		<h1 style="margin: 0;">{{ child.name }}</h1>
+		<a href="/" style="padding: 10px 20px; background-color: #666; color: white; text-decoration: none; border-radius: 5px;">← Back</a>
+	</div>
+
+	<!-- Photo -->
+	<div style="text-align: center; margin-bottom: 30px;">
+		<div style="position: relative; width: 150px; height: 150px; display: inline-block;">
+			{% if child.image %}
+				<img src="{{ url_for('static', filename='img/' + child.image) }}" width="150" height="150" style="border-radius: 10px; object-fit: cover;">
+			{% else %}
+				<img src="{{ url_for('static', filename='img/baby.png') }}" width="150" height="150" style="border-radius: 10px; object-fit: cover;">
+			{% endif %}
+			{% if child.notes and 'allergic' in child.notes.lower() %}
+				<span style="position: absolute; bottom: 0px; right: 0px; background-color: #f44336; color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); border: 3px solid white;">!</span>
+			{% endif %}
+		</div>
+	</div>
+
+	<!-- Child Info -->
+	<div style="background: #f9f9f9; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+		<h2 style="color: #333; margin-top: 0;">Child Information</h2>
+		<p style="margin: 12px 0;"><strong>Name:</strong> {{ child.name }}</p>
+		<p style="margin: 12px 0;"><strong>Checked In:</strong> {{ child.arrived.strftime('%m/%d/%Y %I:%M %p') }}</p>
+		{% if child.departed %}
+			<p style="margin: 12px 0;"><strong>Checked Out:</strong> {{ child.departed.strftime('%m/%d/%Y %I:%M %p') }}</p>
+		{% else %}
+			<p style="margin: 12px 0; color: #4CAF50;"><strong>Status:</strong> Currently Checked In ✓</p>
+		{% endif %}
+	</div>
+
+	<!-- Parent Info -->
+	<div style="background: #f9f9f9; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+		<h2 style="color: #333; margin-top: 0;">Parent Information</h2>
+		<p style="margin: 12px 0;"><strong>Parent Name:</strong> {{ child.parent_name if child.parent_name else 'Not provided' }}</p>
+		<p style="margin: 12px 0;"><strong>Parent Phone:</strong>
+			{% if child.parent_phone %}
+				<a href="tel:{{ child.parent_phone }}" style="color: #2196F3; text-decoration: none;">{{ child.parent_phone }}</a>
+			{% else %}
+				Not provided
+			{% endif %}
+		</p>
+	</div>
+
+	<!-- Notes -->
+	{% if child.notes %}
+	<div style="background: #fff3cd; padding: 20px; border-radius: 10px; border-left: 4px solid #ffc107; margin-bottom: 20px;">
+		<h2 style="color: #856404; margin-top: 0;">📝 Notes</h2>
+		<p style="margin: 0; white-space: pre-wrap; color: #856404;">{{ child.notes }}</p>
+	</div>
+	{% endif %}
+
+	<!-- Action Buttons -->
+	<div style="display: flex; gap: 10px; margin-top: 30px;">
+		<a href="/update/{{ child.id }}" style="flex: 1; padding: 15px; background-color: #2196F3; color: white; text-decoration: none; border-radius: 5px; text-align: center; font-weight: bold;">Edit Information</a>
+		{% if not child.departed %}
+		<a href="/delete/{{ child.id }}" style="flex: 1; padding: 15px; background-color: #f44336; color: white; text-decoration: none; border-radius: 5px; text-align: center; font-weight: bold;" onclick="return confirm('Check out {{ child.name }}?')">Check Out</a>
+		{% endif %}
+		<a href="/" style="flex: 1; padding: 15px; background-color: #666; color: white; text-decoration: none; border-radius: 5px; text-align: center; font-weight: bold;">Back to List</a>
+	</div>
+</div>
+
+{% endblock %}
