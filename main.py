@@ -23,7 +23,7 @@ class Child(db.Model):
     parent_phone = db.Column(db.String(20), nullable=True)
     notes = db.Column(db.Text, nullable=True)
     departed = db.Column(db.DateTime, nullable=True)
-    arrived = db.Column(db.DateTime, default=datetime.now)
+    arrived = db.Column(db.DateTime, nullable=True)
 
     def __repr__(self):
         return '<Child %r>' % self.name
@@ -61,36 +61,48 @@ def home():
             'dan': ('Shirley Temple', '(555-000-0000)')
         }
 
-        # Check if child is already checked in
-        existing_child = Child.query.filter_by(name=child_name, departed=None).first()
+        # Look for existing child in database
+        existing_child = Child.query.filter_by(name=child_name).first()
+
         if existing_child:
-            children = Child.query.filter_by(departed=None).order_by(Child.arrived).all()
-            return render_template('index.html', children=children, now=datetime.now(), error=f"{child_name} is already checked in!")
+            # Child exists - check if already checked in
+            if existing_child.arrived and not existing_child.departed:
+                children = Child.query.filter(Child.arrived != None, Child.departed == None).order_by(Child.arrived).all()
+                return render_template('index.html', children=children, now=datetime.now(), error=f"{child_name} is already checked in!", stats={})
+            else:
+                # Child exists but not checked in - set arrival time
+                existing_child.arrived = datetime.now()
+                try:
+                    db.session.commit()
+                    return redirect('/')
+                except:
+                    return "There was an issue checking in the child"
+        else:
+            # Child doesn't exist - create new record and check in
+            new_child = Child(name=child_name, arrived=datetime.now())
 
-        new_child = Child(name=child_name)
+            # Use hardcoded parent info
+            if child_name.lower() in parent_data:
+                parent_name, parent_phone = parent_data[child_name.lower()]
+                new_child.parent_name = parent_name
+                new_child.parent_phone = parent_phone
 
-        # Use hardcoded parent info
-        if child_name.lower() in parent_data:
-            parent_name, parent_phone = parent_data[child_name.lower()]
-            new_child.parent_name = parent_name
-            new_child.parent_phone = parent_phone
+            # Find matching image
+            image_file = find_image_for_child(child_name)
+            if image_file:
+                new_child.image = image_file
 
-        # Find matching image
-        image_file = find_image_for_child(child_name)
-        if image_file:
-            new_child.image = image_file
-
-        try:
-            db.session.add(new_child)
-            db.session.commit()
-            return redirect('/')
-        except:
-            return "There was an issue checking in the child"
+            try:
+                db.session.add(new_child)
+                db.session.commit()
+                return redirect('/')
+            except:
+                return "There was an issue checking in the child"
 
     else:
         sort_by = request.args.get('sort', 'time_here')  # Default sort
 
-        children = Child.query.filter_by(departed=None).all()
+        children = Child.query.filter(Child.arrived != None, Child.departed == None).all()
 
         if sort_by == 'name':
             children = sorted(children, key=lambda x: x.name.lower())
@@ -99,9 +111,16 @@ def home():
         else:  # time_here (default)
             children = sorted(children, key=lambda x: datetime.now() - x.arrived, reverse=True)
 
+        # Add local timezone adjusted times for display (PythonAnywhere uses UTC)
+        from datetime import timedelta
+        # Only apply offset on PythonAnywhere
+        tz_offset = timedelta(hours=5) if 'pythonanywhere' in os.environ.get('PYTHONANYWHERE_DOMAIN', '') else timedelta(hours=0)
+        for child in children:
+            child.arrived_local = (child.arrived - tz_offset).strftime('%m/%d/%Y %I:%M %p')
+
         # Calculate statistics
         today = date.today()
-        all_today = Child.query.filter(db.func.date(Child.arrived) == today).all()
+        all_today = Child.query.filter(Child.arrived != None, db.func.date(Child.arrived) == today).all()
         checked_out = [c for c in all_today if c.departed]
         currently_here = [c for c in all_today if not c.departed]
 
@@ -172,7 +191,7 @@ def add_child():
 @app.route("/parents")
 def parents_list():
     """Display all parent contact information (unique children only)"""
-    children = Child.query.all()
+    children = Child.query.filter(Child.arrived != None).all()
     # Use dictionary to remove duplicates by name
     seen = {}
     for c in children:
@@ -240,9 +259,14 @@ def export_pdf():
     elements.append(Spacer(1, 12))
 
     table_data = [['Child Name', 'Parent Name', 'Parent Phone', 'Check In', 'Check Out', 'Status']]
+    from datetime import timedelta
+
+    # Adjust for UTC timezone (only on PythonAnywhere which uses UTC)
+    tz_offset = timedelta(hours=5) if 'pythonanywhere' in os.environ.get('PYTHONANYWHERE_DOMAIN', '') else timedelta(hours=0)
+
     for child in children:
-        check_in_time = child.arrived.strftime('%I:%M %p')
-        check_out_time = child.departed.strftime('%I:%M %p') if child.departed else 'Still Here'
+        check_in_time = (child.arrived - tz_offset).strftime('%I:%M %p')
+        check_out_time = (child.departed - tz_offset).strftime('%I:%M %p') if child.departed else 'Still Here'
         status = 'Checked Out' if child.departed else 'Still Here'
         parent_name = child.parent_name if child.parent_name else '-'
         parent_phone = child.parent_phone if child.parent_phone else '-'
