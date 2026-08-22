@@ -35,12 +35,19 @@ def find_image_for_child(child_name):
     if not os.path.exists(img_folder):
         return None
 
-    for ext in ['.jpg', '.jpeg', '.png', '.gif', '.JPG', '.PNG']:
+    for ext in ['.jpg', '.jpeg', '.png', '.gif', '.JPG', '.PNG', '.JPG']:
         filename = f"{child_name}{ext}"
         filepath = os.path.join(img_folder, filename)
         if os.path.exists(filepath):
             return filename
     return None
+
+
+@app.template_filter('get_child_image')
+def get_child_image(child_name):
+    """Jinja2 filter to get child image, checking filesystem"""
+    img = find_image_for_child(child_name)
+    return img if img else 'baby.png'
 
 
 @app.route('/', methods=['POST', 'GET'])
@@ -164,24 +171,34 @@ def add_child():
         # Handle picture upload
         try:
             if 'picture' in request.files:
+                print(f"DEBUG: Picture found in request.files")
                 file = request.files['picture']
+                print(f"DEBUG: File object: {file}, filename: {file.filename}")
                 if file and file.filename != '':
                     img_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'img')
+                    print(f"DEBUG: Image folder path: {img_folder}")
                     if not os.path.exists(img_folder):
+                        print(f"DEBUG: Creating folder")
                         os.makedirs(img_folder)
 
                     file_ext = os.path.splitext(file.filename)[1]
                     filename = f"{child_name}{file_ext}"
                     filepath = os.path.join(img_folder, filename)
+                    print(f"DEBUG: Saving file to: {filepath}")
                     file.save(filepath)
+                    print(f"DEBUG: File saved successfully")
                     new_child.image = filename
+                else:
+                    print(f"DEBUG: No file or empty filename")
             else:
                 image_file = find_image_for_child(child_name)
                 if image_file:
                     new_child.image = image_file
 
+            print(f"DEBUG: Adding child {child_name}, image={new_child.image}")
             db.session.add(new_child)
             db.session.commit()
+            print(f"DEBUG: Child added successfully")
             return redirect('/')
         except Exception as e:
             return f"Error adding child: {str(e)}"
