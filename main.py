@@ -118,13 +118,9 @@ def home():
         else:  # time_here (default)
             children = sorted(children, key=lambda x: datetime.now() - x.arrived, reverse=True)
 
-        # Add local timezone adjusted times for display
-        from datetime import timedelta
-        # Get timezone offset from environment variable (default CST = -6 hours from UTC)
-        tz_hours = int(os.environ.get('TIMEZONE_OFFSET_HOURS', '-6'))
-        tz_offset = timedelta(hours=tz_hours)
+        # Store UTC times as Unix timestamps for JavaScript conversion
         for child in children:
-            child.arrived_local = (child.arrived + tz_offset).strftime('%m/%d/%Y %I:%M %p')
+            child.arrived_timestamp = int(child.arrived.timestamp() * 1000) if child.arrived else None
 
         # Calculate statistics
         today = date.today()
@@ -268,15 +264,10 @@ def export_pdf():
     elements.append(Spacer(1, 12))
 
     table_data = [['Child Name', 'Parent Name', 'Parent Phone', 'Check In', 'Check Out', 'Status']]
-    from datetime import timedelta
-
-    # Get timezone offset from environment variable (default CST = -6 hours from UTC)
-    tz_hours = int(os.environ.get('TIMEZONE_OFFSET_HOURS', '-6'))
-    tz_offset = timedelta(hours=tz_hours)
 
     for child in children:
-        check_in_time = (child.arrived + tz_offset).strftime('%I:%M %p')
-        check_out_time = (child.departed + tz_offset).strftime('%I:%M %p') if child.departed else 'Still Here'
+        check_in_time = child.arrived.strftime('%I:%M %p') if child.arrived else 'N/A'
+        check_out_time = child.departed.strftime('%I:%M %p') if child.departed else 'Still Here'
         status = 'Checked Out' if child.departed else 'Still Here'
         parent_name = child.parent_name if child.parent_name else '-'
         parent_phone = child.parent_phone if child.parent_phone else '-'
