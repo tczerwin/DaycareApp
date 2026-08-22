@@ -63,8 +63,24 @@
 			<tr>
 				<td>
 					<div style="position: relative; width: 60px; height: 60px; display: inline-block;">
-						{% if child.image %}
-							<img src="{{ url_for('static', filename='img/' + child.image) }}" width="60" height="60" style="border-radius: 5px; object-fit: cover;">
+						{% if child.name == 'john' %}
+							<img src="{{ url_for('static', filename='img/john.png') }}" width="60" height="60" style="border-radius: 5px; object-fit: cover;">
+						{% elif child.name == 'aengi' %}
+							<img src="{{ url_for('static', filename='img/aengi.png') }}" width="60" height="60" style="border-radius: 5px; object-fit: cover;">
+						{% elif child.name == 'dan' %}
+							<img src="{{ url_for('static', filename='img/dan.jpg') }}" width="60" height="60" style="border-radius: 5px; object-fit: cover;">
+						{% elif child.name == 'diane' %}
+							<img src="{{ url_for('static', filename='img/diane.png') }}" width="60" height="60" style="border-radius: 5px; object-fit: cover;">
+						{% elif child.name == 'eric' %}
+							<img src="{{ url_for('static', filename='img/eric.png') }}" width="60" height="60" style="border-radius: 5px; object-fit: cover;">
+						{% elif child.name == 'jacob' %}
+							<img src="{{ url_for('static', filename='img/jacob.png') }}" width="60" height="60" style="border-radius: 5px; object-fit: cover;">
+						{% elif child.name == 'russ' %}
+							<img src="{{ url_for('static', filename='img/russ.png') }}" width="60" height="60" style="border-radius: 5px; object-fit: cover;">
+						{% elif child.name == 'sean' %}
+							<img src="{{ url_for('static', filename='img/sean.png') }}" width="60" height="60" style="border-radius: 5px; object-fit: cover;">
+						{% elif child.name == 'tbag' %}
+							<img src="{{ url_for('static', filename='img/tbag.png') }}" width="60" height="60" style="border-radius: 5px; object-fit: cover;">
 						{% else %}
 							<img src="{{ url_for('static', filename='img/baby.png') }}" width="60" height="60" style="border-radius: 5px; object-fit: cover;">
 						{% endif %}
