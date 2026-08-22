@@ -31,7 +31,7 @@ class Child(db.Model):
 
 def find_image_for_child(child_name):
     """Look for an image file matching the child's name"""
-    img_folder = 'static/img'
+    img_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'img')
     if not os.path.exists(img_folder):
         return None
 
@@ -162,28 +162,29 @@ def add_child():
         new_child = Child(name=child_name, parent_name=parent_name, parent_phone=parent_phone, notes=notes)
 
         # Handle picture upload
-        if 'picture' in request.files:
-            file = request.files['picture']
-            if file and file.filename != '':
-                img_folder = 'static/img'
-                if not os.path.exists(img_folder):
-                    os.makedirs(img_folder)
-
-                file_ext = os.path.splitext(file.filename)[1]
-                filename = f"{child_name}{file_ext}"
-                file.save(os.path.join(img_folder, filename))
-                new_child.image = filename
-        else:
-            image_file = find_image_for_child(child_name)
-            if image_file:
-                new_child.image = image_file
-
         try:
+            if 'picture' in request.files:
+                file = request.files['picture']
+                if file and file.filename != '':
+                    img_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'img')
+                    if not os.path.exists(img_folder):
+                        os.makedirs(img_folder)
+
+                    file_ext = os.path.splitext(file.filename)[1]
+                    filename = f"{child_name}{file_ext}"
+                    filepath = os.path.join(img_folder, filename)
+                    file.save(filepath)
+                    new_child.image = filename
+            else:
+                image_file = find_image_for_child(child_name)
+                if image_file:
+                    new_child.image = image_file
+
             db.session.add(new_child)
             db.session.commit()
             return redirect('/')
-        except:
-            return "There was an issue adding the child"
+        except Exception as e:
+            return f"Error adding child: {str(e)}"
     else:
         return render_template('add_child.html')
 
@@ -223,7 +224,7 @@ def update(id):
         if 'picture' in request.files:
             file = request.files['picture']
             if file and file.filename != '':
-                img_folder = 'static/img'
+                img_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'img')
                 if not os.path.exists(img_folder):
                     os.makedirs(img_folder)
 
