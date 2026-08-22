@@ -72,7 +72,7 @@
 				<td>{{child.name}}</td>
 				<td>{{child.parent_name if child.parent_name else '-'}}</td>
 				<td>{{child.parent_phone if child.parent_phone else '-'}}</td>
-				<td>{{child.arrived_local}}</td>
+				<td class="time-local" data-timestamp="{{child.arrived_timestamp}}"></td>
 				<td>
 					{% set elapsed = now - child.arrived %}
 					{% set hours = elapsed.seconds // 3600 %}
@@ -104,6 +104,15 @@
 	</form>
 
 	<script>
+		// Convert timestamps to local timezone
+		document.querySelectorAll('.time-local').forEach(function(cell) {
+			var timestamp = parseInt(cell.getAttribute('data-timestamp'));
+			if (timestamp) {
+				var date = new Date(timestamp);
+				cell.textContent = date.toLocaleString();
+			}
+		});
+
 		var checkinInput = document.getElementById('checkinName');
 		var childInfoDiv = document.getElementById('childInfo');
 		var infoText = document.getElementById('infoText');
