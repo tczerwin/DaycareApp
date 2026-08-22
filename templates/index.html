@@ -81,6 +81,8 @@
 							<img src="{{ url_for('static', filename='img/sean.png') }}" width="60" height="60" style="border-radius: 5px; object-fit: cover;">
 						{% elif child.name == 'tbag' %}
 							<img src="{{ url_for('static', filename='img/tbag.png') }}" width="60" height="60" style="border-radius: 5px; object-fit: cover;">
+						{% elif child.image %}
+							<img src="{{ url_for('static', filename='img/' + child.image) }}" width="60" height="60" style="border-radius: 5px; object-fit: cover;">
 						{% else %}
 							<img src="{{ url_for('static', filename='img/baby.png') }}" width="60" height="60" style="border-radius: 5px; object-fit: cover;">
 						{% endif %}
