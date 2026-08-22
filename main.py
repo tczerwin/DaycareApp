@@ -118,12 +118,13 @@ def home():
         else:  # time_here (default)
             children = sorted(children, key=lambda x: datetime.now() - x.arrived, reverse=True)
 
-        # Add local timezone adjusted times for display (PythonAnywhere uses UTC)
+        # Add local timezone adjusted times for display
         from datetime import timedelta
-        # Only apply offset on PythonAnywhere
-        tz_offset = timedelta(hours=5) if 'pythonanywhere' in os.environ.get('PYTHONANYWHERE_DOMAIN', '') else timedelta(hours=0)
+        # Get timezone offset from environment variable (default CST = -6 hours from UTC)
+        tz_hours = int(os.environ.get('TIMEZONE_OFFSET_HOURS', '-6'))
+        tz_offset = timedelta(hours=tz_hours)
         for child in children:
-            child.arrived_local = (child.arrived - tz_offset).strftime('%m/%d/%Y %I:%M %p')
+            child.arrived_local = (child.arrived + tz_offset).strftime('%m/%d/%Y %I:%M %p')
 
         # Calculate statistics
         today = date.today()
@@ -171,34 +172,24 @@ def add_child():
         # Handle picture upload
         try:
             if 'picture' in request.files:
-                print(f"DEBUG: Picture found in request.files")
                 file = request.files['picture']
-                print(f"DEBUG: File object: {file}, filename: {file.filename}")
                 if file and file.filename != '':
                     img_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'img')
-                    print(f"DEBUG: Image folder path: {img_folder}")
                     if not os.path.exists(img_folder):
-                        print(f"DEBUG: Creating folder")
                         os.makedirs(img_folder)
 
                     file_ext = os.path.splitext(file.filename)[1]
                     filename = f"{child_name}{file_ext}"
                     filepath = os.path.join(img_folder, filename)
-                    print(f"DEBUG: Saving file to: {filepath}")
                     file.save(filepath)
-                    print(f"DEBUG: File saved successfully")
                     new_child.image = filename
-                else:
-                    print(f"DEBUG: No file or empty filename")
             else:
                 image_file = find_image_for_child(child_name)
                 if image_file:
                     new_child.image = image_file
 
-            print(f"DEBUG: Adding child {child_name}, image={new_child.image}")
             db.session.add(new_child)
             db.session.commit()
-            print(f"DEBUG: Child added successfully")
             return redirect('/')
         except Exception as e:
             return f"Error adding child: {str(e)}"
@@ -279,12 +270,13 @@ def export_pdf():
     table_data = [['Child Name', 'Parent Name', 'Parent Phone', 'Check In', 'Check Out', 'Status']]
     from datetime import timedelta
 
-    # Adjust for UTC timezone (only on PythonAnywhere which uses UTC)
-    tz_offset = timedelta(hours=5) if 'pythonanywhere' in os.environ.get('PYTHONANYWHERE_DOMAIN', '') else timedelta(hours=0)
+    # Get timezone offset from environment variable (default CST = -6 hours from UTC)
+    tz_hours = int(os.environ.get('TIMEZONE_OFFSET_HOURS', '-6'))
+    tz_offset = timedelta(hours=tz_hours)
 
     for child in children:
-        check_in_time = (child.arrived - tz_offset).strftime('%I:%M %p')
-        check_out_time = (child.departed - tz_offset).strftime('%I:%M %p') if child.departed else 'Still Here'
+        check_in_time = (child.arrived + tz_offset).strftime('%I:%M %p')
+        check_out_time = (child.departed + tz_offset).strftime('%I:%M %p') if child.departed else 'Still Here'
         status = 'Checked Out' if child.departed else 'Still Here'
         parent_name = child.parent_name if child.parent_name else '-'
         parent_phone = child.parent_phone if child.parent_phone else '-'
